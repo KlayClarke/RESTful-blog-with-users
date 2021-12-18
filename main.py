@@ -5,6 +5,7 @@ from flask_ckeditor import CKEditor
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey
 from forms import RegisterForm, LoginForm, CreatePostForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, Response
@@ -25,22 +26,26 @@ login_manager.init_app(app)
 
 
 # configure table
-class BlogPost(db.Model):
-    __tablename__ = "blog_posts"
+class User(UserMixin, db.Model):
+    __tablename__ = 'parent'
     id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(250), unique=True, nullable=False)
+    password = db.Column(db.String(250), nullable=False)
+    name = db.Column(db.String(250), nullable=False)
+    children = relationship('BlogPost', back_populates='parent')
+
+
+class BlogPost(db.Model):
+    __tablename__ = "child"
+    id = db.Column(db.Integer, primary_key=True)
+    parent_id = db.Column(db.Integer, ForeignKey('parent.id'))
     author = db.Column(db.String(250), nullable=False)
     title = db.Column(db.String(250), unique=True, nullable=False)
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=True)
-
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(250), unique=True, nullable=False)
-    password = db.Column(db.String(250), nullable=False)
-    name = db.Column(db.String(250), nullable=False)
+    parent = relationship('User', back_populates='children')
 
 
 db.create_all()
