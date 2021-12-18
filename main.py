@@ -154,27 +154,31 @@ def add_new_post():
     return render_template("make-post.html", form=form)
 
 
-@app.route("/edit-post/<int:post_id>")
+@app.route("/edit-post/<int:post_id>", methods=['GET', 'POST'])
 @login_required
 @admin_only
 def edit_post(post_id):
-    post = BlogPost.query.get(post_id)
-    edit_form = CreatePostForm(
+    post = db.session.query(BlogPost).filter_by(id=post_id).first()
+    form = CreatePostForm(
         title=post.title,
         subtitle=post.subtitle,
         img_url=post.img_url,
-        author=post.author,
         body=post.body
     )
-    if edit_form.validate_on_submit():
-        post.title = edit_form.title.data
-        post.subtitle = edit_form.subtitle.data
-        post.img_url = edit_form.img_url.data
-        post.author = edit_form.author.data
-        post.body = edit_form.body.data
+    if request.method == 'POST':
+        rq = request.form.get
+        edited_blog_post = BlogPost(title=rq('title'), date=post.date,
+                                    subtitle=rq('subtitle'), author=post.author,
+                                    img_url=rq('img_url'), body=rq('body'))
+        ebp = edited_blog_post
+        post.title = ebp.title
+        post.subtitle = ebp.subtitle
+        post.img_url = ebp.img_url
+        post.author = ebp.author
+        post.body = ebp.body
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))
-    return render_template("make-post.html", form=edit_form)
+    return render_template("make-post.html", form=form)
 
 
 @app.route("/delete/<int:post_id>")
