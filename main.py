@@ -136,19 +136,22 @@ def logout():
 
 
 @app.route("/post/<int:post_id>", methods=['GET', 'POST'])
-def show_post(post_id):
+@app.route("/post/<int:post_id>/<error>", methods=['GET', 'POST'])
+def show_post(post_id, error=None):
     form = CommentForm()
     all_comments = Comment.query.filter_by(blogpost_id=post_id).all()
     requested_post = BlogPost.query.get(post_id)
     if request.method == 'POST':
-        author = User.query.get(current_user.id)
-        print(author)
-        new_comment = Comment(text=request.form.get('comment'), author=current_user.name,
-                              author_id=current_user.id, blogpost_id=post_id)
-        db.session.add(new_comment)
-        db.session.commit()
-        flash('Comment created successfully')
-        return redirect(url_for('show_post', post_id=post_id))
+        if current_user.is_authenticated:
+            new_comment = Comment(text=request.form.get('comment'), author=current_user.name,
+                                  author_id=current_user.id, blogpost_id=post_id)
+            db.session.add(new_comment)
+            db.session.commit()
+            flash('Comment created successfully')
+            return redirect(url_for('show_post', post_id=post_id))
+        else:
+            error = 'You must login or register to comment'
+            return redirect(url_for('login', error=error))
     return render_template("post.html", post=requested_post, form=form, all_comments=all_comments)
 
 
