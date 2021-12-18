@@ -36,21 +36,18 @@
           {{ ckeditor.config(name='comment') }}
 <!--           Comments Area -->
           <div class="col-lg-8 col-md-10 mx-auto comment">
-              <ul class="commentList">
-                <li>
-                    <div class="commenterImage">
-                      <img src="https://pbs.twimg.com/profile_images/744849215675838464/IH0FNIXk.jpg"/>
-                    </div>
                   {% for comment in all_comments %}
                   <ul>
                     <li>
+                      <div class="commenterImage">
+                      <img src=''/>
+                    </div>
                        <div class="commentText">
                       <p>{{ comment.text | safe }}</p>
                       <span class="date sub-text">{{ comment.author }}</span>
                     </div>
                     </li>
                   </ul>
-
                   {% endfor %}
                 </li>
               </ul>
