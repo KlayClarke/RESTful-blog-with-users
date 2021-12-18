@@ -27,4 +27,5 @@ class LoginForm(FlaskForm):
 
 class CommentForm(FlaskForm):
     comment = CKEditorField('Comment')
+    author = StringField('Author')
     submit = SubmitField('Submit Comment')
