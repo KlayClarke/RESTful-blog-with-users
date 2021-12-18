@@ -36,19 +36,19 @@
           {{ ckeditor.config(name='comment') }}
 <!--           Comments Area -->
           <div class="col-lg-8 col-md-10 mx-auto comment">
-                  {% for comment in all_comments %}
                   <ul>
+                    {% for comment in all_comments %}
                     <li style="list-style-type:none;">
                       <div class="commenterImage">
-                      <img src=''/>
+                      <img src={{ comment.author_email | gravatar }}/>
                     </div>
                        <div class="commentText">
                       <p>{{ comment.text | safe }}</p>
                       <span class="date sub-text">{{ comment.author }}</span>
                     </div>
                     </li>
+                    {% endfor %}
                   </ul>
-                  {% endfor %}
                 </li>
               </ul>
             </div>
