@@ -1,16 +1,13 @@
 from datetime import date
-from flask_wtf import FlaskForm
-from forms import CreatePostForm
-from forms import RegisterForm, LoginForm
-from wtforms import StringField, SubmitField
+from functools import wraps
 from flask_gravatar import Gravatar
 from flask_ckeditor import CKEditor
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
-from wtforms.validators import DataRequired
-from flask import Flask, render_template, redirect, url_for, flash, request
+from forms import RegisterForm, LoginForm, CreatePostForm
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, Response
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 
 app = Flask(__name__)
@@ -36,7 +33,7 @@ class BlogPost(db.Model):
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    img_url = db.Column(db.String(250), nullable=False)
+    img_url = db.Column(db.String(250), nullable=True)
 
 
 class User(UserMixin, db.Model):
@@ -49,9 +46,14 @@ class User(UserMixin, db.Model):
 db.create_all()
 
 
-def admin_only(function):
-    def wrapper():
-        pass
+def admin_only(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.id != 1:
+            abort(403)
+            abort(Response('Forbidden'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @login_manager.user_loader
@@ -131,27 +133,30 @@ def contact():
     return render_template("contact.html")
 
 
-@app.route("/new-post")
+@app.route("/new-post", methods=['GET', 'POST'])
 @login_required
+@admin_only
 def add_new_post():
     form = CreatePostForm()
-    if form.validate_on_submit():
-        new_post = BlogPost(
-            title=form.title.data,
-            subtitle=form.subtitle.data,
-            body=form.body.data,
-            img_url=form.img_url.data,
-            author=current_user,
-            date=date.today().strftime("%B %d, %Y")
-        )
-        db.session.add(new_post)
-        db.session.commit()
-        return redirect(url_for("get_all_posts"))
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_post = BlogPost(
+                title=form.title.data,
+                subtitle=form.subtitle.data,
+                body=form.body.data,
+                img_url=form.img_url.data,
+                author=current_user.name,
+                date=date.today().strftime("%B %d, %Y")
+            )
+            db.session.add(new_post)
+            db.session.commit()
+            return redirect(url_for("get_all_posts"))
     return render_template("make-post.html", form=form)
 
 
 @app.route("/edit-post/<int:post_id>")
 @login_required
+@admin_only
 def edit_post(post_id):
     post = BlogPost.query.get(post_id)
     edit_form = CreatePostForm(
@@ -174,6 +179,7 @@ def edit_post(post_id):
 
 @app.route("/delete/<int:post_id>")
 @login_required
+@admin_only
 def delete_post(post_id):
     post_to_delete = BlogPost.query.get(post_id)
     db.session.delete(post_to_delete)
