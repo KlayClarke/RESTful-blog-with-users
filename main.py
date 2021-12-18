@@ -1,12 +1,12 @@
 from datetime import date
 from functools import wraps
+from sqlalchemy import ForeignKey
 from flask_gravatar import Gravatar
 from flask_ckeditor import CKEditor
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
-from sqlalchemy import ForeignKey
-from forms import RegisterForm, LoginForm, CreatePostForm
+from forms import RegisterForm, LoginForm, CreatePostForm, CommentForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, Response
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
@@ -27,25 +27,25 @@ login_manager.init_app(app)
 
 # configure table
 class User(UserMixin, db.Model):
-    __tablename__ = 'parent'
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(250), unique=True, nullable=False)
     password = db.Column(db.String(250), nullable=False)
     name = db.Column(db.String(250), nullable=False)
-    children = relationship('BlogPost', back_populates='parent')
+    blogposts = relationship('BlogPost', back_populates='user')
 
 
 class BlogPost(db.Model):
-    __tablename__ = "child"
+    __tablename__ = "blogpost"
     id = db.Column(db.Integer, primary_key=True)
-    parent_id = db.Column(db.Integer, ForeignKey('parent.id'))
+    author_id = db.Column(db.Integer, ForeignKey('user.id'))
     author = db.Column(db.String(250), nullable=False)
     title = db.Column(db.String(250), unique=True, nullable=False)
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=True)
-    parent = relationship('User', back_populates='children')
+    user = relationship('User', back_populates='blogposts')
 
 
 db.create_all()
@@ -125,17 +125,7 @@ def logout():
 @app.route("/post/<int:post_id>")
 def show_post(post_id):
     requested_post = BlogPost.query.get(post_id)
-    return render_template("post.html", post=requested_post)
-
-
-@app.route("/about")
-def about():
-    return render_template("about.html")
-
-
-@app.route("/contact")
-def contact():
-    return render_template("contact.html")
+    return render_template("post.html", post=requested_post, form=form)
 
 
 @app.route("/new-post", methods=['GET', 'POST'])
@@ -194,6 +184,16 @@ def delete_post(post_id):
     db.session.delete(post_to_delete)
     db.session.commit()
     return redirect(url_for('get_all_posts'))
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
 
 
 if __name__ == "__main__":
