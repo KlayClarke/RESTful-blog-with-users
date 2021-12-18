@@ -49,6 +49,11 @@ class User(UserMixin, db.Model):
 db.create_all()
 
 
+def admin_only(function):
+    def wrapper():
+        pass
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
@@ -104,6 +109,7 @@ def login(error=None):
 
 
 @app.route('/logout')
+@login_required
 def logout():
     logout_user()
     return redirect(url_for('get_all_posts'))
@@ -126,6 +132,7 @@ def contact():
 
 
 @app.route("/new-post")
+@login_required
 def add_new_post():
     form = CreatePostForm()
     if form.validate_on_submit():
@@ -144,6 +151,7 @@ def add_new_post():
 
 
 @app.route("/edit-post/<int:post_id>")
+@login_required
 def edit_post(post_id):
     post = BlogPost.query.get(post_id)
     edit_form = CreatePostForm(
@@ -165,6 +173,7 @@ def edit_post(post_id):
 
 
 @app.route("/delete/<int:post_id>")
+@login_required
 def delete_post(post_id):
     post_to_delete = BlogPost.query.get(post_id)
     db.session.delete(post_to_delete)
