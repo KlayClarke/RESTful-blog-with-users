@@ -83,7 +83,7 @@ def register():
     return render_template("register.html", form=form)
 
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 @app.route('/login/<error>', methods=['GET', 'POST'])
 def login(error=None):
     form = LoginForm()
@@ -105,6 +105,7 @@ def login(error=None):
 
 @app.route('/logout')
 def logout():
+    logout_user()
     return redirect(url_for('get_all_posts'))
 
 
