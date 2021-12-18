@@ -81,8 +81,9 @@ def load_user(user_id):
 
 @app.route('/')
 def get_all_posts():
-    posts = BlogPost.query.all()
-    return render_template("index.html", all_posts=posts)
+    posts = db.session.query(BlogPost).all()
+    new_list_of_posts = [post for post in posts[::-1]]
+    return render_template("index.html", all_posts=new_list_of_posts)
 
 
 @app.route('/register', methods=['GET', 'POST'])
