@@ -74,14 +74,13 @@ def get_all_posts():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    error = None
     form = RegisterForm()
     if request.method == 'POST':
         email = request.form.get('email')
         user = db.session.query(User).filter_by(email=email).first()
         if user:
-            error = 'Account for this email address already exists'
-            return render_template('register.html', form=form, error=error)
+            error = 'You\'ve already signed up with that email, log in instead'
+            return redirect(url_for('login', error=error))
         else:
             hashed_password = generate_password_hash(password=request.form.get('password'),
                                                      method='pbkdf2:sha256', salt_length=8)
@@ -96,9 +95,9 @@ def register():
     return render_template("register.html", form=form)
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
+@app.route('/login', defaults={'error': None})
+@app.route('/login/<error>', methods=['GET', 'POST'])
+def login(error):
     form = LoginForm()
     if request.method == 'POST':
         email = request.form.get('email')
