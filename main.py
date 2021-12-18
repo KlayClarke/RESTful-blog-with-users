@@ -1,13 +1,16 @@
-from flask import Flask, render_template, redirect, url_for, flash
-from flask_bootstrap import Bootstrap
-from flask_ckeditor import CKEditor
 from datetime import date
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf import FlaskForm
+from forms import CreatePostForm
+from wtforms import StringField, SubmitField
+from flask_gravatar import Gravatar
+from flask_ckeditor import CKEditor
+from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
+from wtforms.validators import DataRequired
+from flask import Flask, render_template, redirect, url_for, flash, request
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
-from forms import CreatePostForm
-from flask_gravatar import Gravatar
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
@@ -33,7 +36,21 @@ class BlogPost(db.Model):
     img_url = db.Column(db.String(250), nullable=False)
 
 
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(250), unique=True, nullable=False)
+    password = db.Column(db.String(250), nullable=False)
+    name = db.Column(db.String(250), nullable=False)
+
+
 db.create_all()
+
+
+class RegisterForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired()])
+    password = StringField('Password', validators=[DataRequired()])
+    submit = SubmitField('Register')
 
 
 @app.route('/')
@@ -42,9 +59,25 @@ def get_all_posts():
     return render_template("index.html", all_posts=posts)
 
 
-@app.route('/register')
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    return render_template("register.html")
+    error = None
+    form = RegisterForm()
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = db.session.query(User).filter_by(email=email).first()
+        if user:
+            error = 'Account for this email address already exists'
+            return render_template('register.html', form=form, error=error)
+        else:
+            new_user = User(email=email,
+                            password=request.form.get('password'),
+                            name=request.form.get('name'))
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Account created successfully')
+            return redirect(url_for('get_all_posts'))
+    return render_template("register.html", form=form)
 
 
 @app.route('/login')
@@ -109,7 +142,6 @@ def edit_post(post_id):
         post.body = edit_form.body.data
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))
-
     return render_template("make-post.html", form=edit_form)
 
 
