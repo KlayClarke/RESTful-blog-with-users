@@ -1,6 +1,7 @@
 from datetime import date
 from flask_wtf import FlaskForm
 from forms import CreatePostForm
+from forms import RegisterForm, LoginForm
 from wtforms import StringField, SubmitField
 from flask_gravatar import Gravatar
 from flask_ckeditor import CKEditor
@@ -48,19 +49,6 @@ class User(UserMixin, db.Model):
 db.create_all()
 
 
-class RegisterForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired()])
-    password = StringField('Password', validators=[DataRequired()])
-    submit = SubmitField('Register')
-
-
-class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired()])
-    password = StringField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
-
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
@@ -95,9 +83,9 @@ def register():
     return render_template("register.html", form=form)
 
 
-@app.route('/login', defaults={'error': None})
+@app.route('/login')
 @app.route('/login/<error>', methods=['GET', 'POST'])
-def login(error):
+def login(error=None):
     form = LoginForm()
     if request.method == 'POST':
         email = request.form.get('email')
