@@ -22,9 +22,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+
 
 # configure table
-
 class BlogPost(db.Model):
     __tablename__ = "blog_posts"
     id = db.Column(db.Integer, primary_key=True)
@@ -53,6 +55,17 @@ class RegisterForm(FlaskForm):
     submit = SubmitField('Register')
 
 
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired()])
+    password = StringField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+
 @app.route('/')
 def get_all_posts():
     posts = BlogPost.query.all()
@@ -70,8 +83,10 @@ def register():
             error = 'Account for this email address already exists'
             return render_template('register.html', form=form, error=error)
         else:
+            hashed_password = generate_password_hash(password=request.form.get('password'),
+                                                     method='pbkdf2:sha256', salt_length=8)
             new_user = User(email=email,
-                            password=request.form.get('password'),
+                            password=hashed_password,
                             name=request.form.get('name'))
             db.session.add(new_user)
             db.session.commit()
@@ -80,9 +95,24 @@ def register():
     return render_template("register.html", form=form)
 
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    return render_template("login.html")
+    error = None
+    form = LoginForm()
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = db.session.query(User).filter_by(email=email).first()
+        if user:
+            if check_password_hash(pwhash=user.password, password=password):
+                login_user(user=user, remember=True)
+                flash('Logged in successfully')
+                return redirect(url_for('get_all_posts', user_name=user.name))
+            else:
+                error = 'Invalid password'
+        else:
+            error = 'Email address not found in our database'
+    return render_template("login.html", form=form, error=error)
 
 
 @app.route('/logout')
