@@ -24,6 +24,9 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+gravatar = Gravatar(app, size=100, rating='g', default='retro',
+                    force_default=False, force_lower=False, use_ssl=False, base_url=None)
+
 
 # configure table
 class User(UserMixin, db.Model):
@@ -57,6 +60,7 @@ class Comment(db.Model):
     blogpost_id = db.Column(db.Integer, ForeignKey('blogpost.id'))
     text = db.Column(db.String(250), nullable=False)
     author = db.Column(db.String(250), nullable=False)
+    author_email = db.Column(db.String(250), nullable=False)
     user = relationship('User', back_populates='comments')
     blogposts = relationship('BlogPost', back_populates='comments')
 
@@ -71,6 +75,7 @@ def admin_only(f):
             abort(403)
             abort(Response('Forbidden'))
         return f(*args, **kwargs)
+
     return decorated_function
 
 
@@ -145,7 +150,7 @@ def show_post(post_id, error=None):
     if request.method == 'POST':
         if current_user.is_authenticated:
             new_comment = Comment(text=request.form.get('comment'), author=current_user.name,
-                                  author_id=current_user.id, blogpost_id=post_id)
+                                  author_id=current_user.id, author_email=current_user.email, blogpost_id=post_id)
             db.session.add(new_comment)
             db.session.commit()
             flash('Comment created successfully')
