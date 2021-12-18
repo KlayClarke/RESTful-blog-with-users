@@ -138,12 +138,13 @@ def logout():
 @app.route("/post/<int:post_id>", methods=['GET', 'POST'])
 def show_post(post_id):
     form = CommentForm()
-    all_comments = Comment.query.all()
+    all_comments = Comment.query.filter_by(blogpost_id=post_id).all()
     requested_post = BlogPost.query.get(post_id)
     if request.method == 'POST':
         author = User.query.get(current_user.id)
         print(author)
-        new_comment = Comment(text=request.form.get('comment'), author=current_user.name)
+        new_comment = Comment(text=request.form.get('comment'), author=current_user.name,
+                              author_id=current_user.id, blogpost_id=post_id)
         db.session.add(new_comment)
         db.session.commit()
         flash('Comment created successfully')
@@ -164,6 +165,7 @@ def add_new_post():
                 body=form.body.data,
                 img_url=form.img_url.data,
                 author=current_user.name,
+                author_id=current_user.id,
                 date=date.today().strftime("%B %d, %Y")
             )
             db.session.add(new_post)
