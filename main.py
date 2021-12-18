@@ -33,6 +33,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(250), nullable=False)
     name = db.Column(db.String(250), nullable=False)
     blogposts = relationship('BlogPost', back_populates='user')
+    comments = relationship('Comment', back_populates='user')
 
 
 class BlogPost(db.Model):
@@ -46,6 +47,18 @@ class BlogPost(db.Model):
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=True)
     user = relationship('User', back_populates='blogposts')
+    comments = relationship('Comment', back_populates='blogposts')
+
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, ForeignKey('user.id'))
+    blogpost_id = db.Column(db.Integer, ForeignKey('blogpost.id'))
+    text = db.Column(db.String(250), nullable=False)
+    author = db.Column(db.String(250), nullable=False)
+    user = relationship('User', back_populates='comments')
+    blogposts = relationship('BlogPost', back_populates='comments')
 
 
 db.create_all()
@@ -122,11 +135,20 @@ def logout():
     return redirect(url_for('get_all_posts'))
 
 
-@app.route("/post/<int:post_id>")
+@app.route("/post/<int:post_id>", methods=['GET', 'POST'])
 def show_post(post_id):
     form = CommentForm()
+    all_comments = Comment.query.all()
     requested_post = BlogPost.query.get(post_id)
-    return render_template("post.html", post=requested_post, form=form)
+    if request.method == 'POST':
+        author = User.query.get(current_user.id)
+        print(author)
+        new_comment = Comment(text=request.form.get('comment'), author=current_user.name)
+        db.session.add(new_comment)
+        db.session.commit()
+        flash('Comment created successfully')
+        return redirect(url_for('show_post', post_id=post_id))
+    return render_template("post.html", post=requested_post, form=form, all_comments=all_comments)
 
 
 @app.route("/new-post", methods=['GET', 'POST'])
